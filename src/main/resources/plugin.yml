@@ -1,0 +1,6 @@
+main: me.devnatan.lobbyqueue.LobbyQueue
+name: LobbyQueue
+version: 1.0
+author: DevNatan
+website: https://github.com/DevNatan
+description: Copyright (c) 2018 DevNatan. Todos os direitos reservados.
