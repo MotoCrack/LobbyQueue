@@ -27,7 +27,13 @@ public class PlaceholderHook extends EZPlaceholderHook {
                 return qp.getServer();
             }
         } else {
-            return "";
+            if(s.equals("position")) {
+                return "0";
+            }
+
+            if(s.equals("server")) {
+                return "Nenhum";
+            }
         }
         return null;
     }
