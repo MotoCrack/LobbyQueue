@@ -57,7 +57,7 @@ public class QueueAPI {
      * @param player = o jogador
      * @return se o jogador está na fila
      */
-    private static boolean isInQueue(Player player) {
+    public static boolean isInQueue(Player player) {
         return LobbyQueue.getQueue().stream().anyMatch(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()));
     }
 
