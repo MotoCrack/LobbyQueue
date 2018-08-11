@@ -1,6 +1,6 @@
 main: me.devnatan.lobbyqueue.LobbyQueue
 name: LobbyQueue
-version: 1.0
+version: 2.0
 author: DevNatan
 softdepend: [PlaceholderAPI]
 website: https://github.com/DevNatan

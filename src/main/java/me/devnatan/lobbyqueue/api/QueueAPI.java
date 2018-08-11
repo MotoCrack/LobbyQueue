@@ -1,24 +1,25 @@
 package me.devnatan.lobbyqueue.api;
 
-import me.devnatan.lobbyqueue.LobbyQueue;
-import me.devnatan.lobbyqueue.player.QueuedPlayer;
+import me.devnatan.lobbyqueue.player.QueuePlayer;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.PriorityBlockingQueue;
 
+@Deprecated
 public class QueueAPI {
 
     private QueueAPI() { }
 
     /**
-     * Obtem um {@link QueuedPlayer} através de um {@link Player}
+     * Obtem um {@link QueuePlayer} através de um {@link Player}
      * @param player = o jogador
-     * @return QueuedPlayer
+     * @return QueuePlayer
+     * @deprecated Deprecated
      */
-    public static QueuedPlayer getFromQueue(Player player) {
-        PriorityBlockingQueue<QueuedPlayer> queue = LobbyQueue.getQueue();
-        return queue.parallelStream().filter(Objects::nonNull)
+    public static QueuePlayer getFromQueue(Player player) {
+        List<QueuePlayer> queue = null;
+        return queue.stream().filter(Objects::nonNull)
                 .filter(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()))
                 .filter(queuedPlayer -> queuedPlayer.getPlayer().isOnline())
                 .findFirst()
@@ -35,8 +36,8 @@ public class QueueAPI {
         if(isInQueue(player))
             throw new IllegalArgumentException("This player is already in queue.");
 
-        PriorityBlockingQueue<QueuedPlayer> queue = LobbyQueue.getQueue();
-        queue.add(new QueuedPlayer(player, server, queue.size() + 1));
+        List<QueuePlayer> queue = null;
+        queue.add(new QueuePlayer(player, server));
     }
 
     /**
@@ -48,7 +49,7 @@ public class QueueAPI {
         if(isInQueue(player))
             throw new IllegalArgumentException("This player isn't in queue.");
 
-        PriorityBlockingQueue<QueuedPlayer> queue = LobbyQueue.getQueue();
+        List<QueuePlayer> queue = null;
         queue.removeIf(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()));
     }
 
@@ -58,7 +59,8 @@ public class QueueAPI {
      * @return se o jogador está na fila
      */
     public static boolean isInQueue(Player player) {
-        return LobbyQueue.getQueue().stream().anyMatch(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()));
+        return false;
+        // return LobbyQueue.getQueue().stream().anyMatch(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()));
     }
 
     /**
@@ -67,7 +69,7 @@ public class QueueAPI {
      * @return se o jogador tem prioridade na fila
      */
     public static boolean hasPriorityInQueue(Player player) {
-        return player.hasPermission("lobby.priority");
+        return player.hasPermission("lobbyqueue.priority");
     }
 
 }

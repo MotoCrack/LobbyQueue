@@ -1,37 +1,48 @@
 package me.devnatan.lobbyqueue;
 
-import me.devnatan.lobbyqueue.hook.PlaceholderHook;
 import me.devnatan.lobbyqueue.libs.BungeeAPI;
 import me.devnatan.lobbyqueue.libs.SocketUtil;
-import me.devnatan.lobbyqueue.listener.PlayerQuitListener;
-import me.devnatan.lobbyqueue.player.QueuedPlayer;
-import me.devnatan.lobbyqueue.player.QueuedPlayerComparator;
+import me.devnatan.lobbyqueue.server.ServerRunnable;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.function.BiConsumer;
 
 public class LobbyQueue extends JavaPlugin {
 
-    private static PriorityBlockingQueue<QueuedPlayer> queue;
-    private static QueuedPlayer last;
-    private static final Map<String, Integer> maxPlayers = new HashMap<>();
+    public static LobbyQueue INSTANCE;
+
+    private Map<String, ServerRunnable> serverRunnableMap = new HashMap<>();
+    private Map<String, Integer> maxPlayers = new HashMap<>();
+    private BungeeAPI bungeeApi;
+
+    public void onLoad() {
+        INSTANCE = this;
+    }
 
     public void onEnable() {
+        path();
+        config(this::runnable);
+        setup();
+    }
+
+    public void onDisable() {
+        Bukkit.getScheduler().cancelTasks(this);
+    }
+
+    private void path() {
         if(!getDataFolder().exists()) getDataFolder().mkdir();
         if(!new File(getDataFolder(), "config.yml").exists())
             saveResource("config.yml", false);
+    }
 
+    private void config(BiConsumer<String, Integer> consumer) {
         new BukkitRunnable() {
             public void run() {
                 ConfigurationSection cs = getConfig().getConfigurationSection("servers");
@@ -44,80 +55,38 @@ public class LobbyQueue extends JavaPlugin {
                     try {
                         int max = SocketUtil.getMaxPlayers(addr);
                         maxPlayers.put(sv, max);
+                        consumer.accept(sv, max);
                     } catch (Exception e) {
                         getLogger().severe("Falha ao obter quantidade máxima de jogadores para " + sv + ".");
                     }
                 });
             }
-        }.runTaskTimer(this, 20L * 3, 20L * 60);
+        }.runTaskTimer(this, 20L, 20L * 30);
+    }
 
-        queue = new PriorityBlockingQueue<>(1, new QueuedPlayerComparator());
-        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new PlaceholderHook(this).hook();
+    private void setup() {
+        // Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);
+        bungeeApi = BungeeAPI.of(this);
+    }
+
+    private void runnable(String server, int max) {
+        if (!serverRunnableMap.containsKey(server)) {
+            ServerRunnable runnable = new ServerRunnable(server, max);
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, runnable, 20L, 20L);
+            serverRunnableMap.put(server, runnable);
         }
-
-        Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);
-        BungeeAPI api = BungeeAPI.of(this);
-
-        new BukkitRunnable() {
-            public void run() {
-                if(queue.size() != 0){
-                    QueuedPlayer qp = queue.poll();
-                    Player p = qp.getPlayer();
-                    if(!p.isOnline()) {
-                        return;
-                    }
-
-                    if (maxPlayers.containsKey(qp.getServer())) {
-                        try {
-                            int count = api.getPlayerCount(qp.getServer()).get();
-                            if(count == maxPlayers.get(qp.getServer())) {
-                                p.sendMessage(ChatColor.GOLD + "Você é o primeiro da fila mas o servidor está cheio.");
-                                return;
-                            }
-                        } catch (InterruptedException | ExecutionException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    p.sendMessage(ChatColor.GOLD + "Enviando você para o servidor " + qp.getServer() + "...");
-                    api.connect(p, qp.getServer());
-
-                    Iterator<QueuedPlayer> iterator = queue.iterator();
-                    while(iterator.hasNext()) { // ConcurrentModificationException
-                        QueuedPlayer next = iterator.next();
-                        Player nextPlayer = next.getPlayer();
-                        next.setPosition(next.getPosition() - 1);
-                        if(nextPlayer != null && nextPlayer.isOnline()) {
-                            nextPlayer.sendMessage(ChatColor.GOLD + "Você agora é o #" + next.getPosition() + " da fila.");
-                        }
-                    }
-                }
-            }
-        }.runTaskTimer(this, 20L, 20L);
     }
 
-    public void onDisable() {
-        Bukkit.getScheduler().cancelTasks(this);
+    public Map<String, ServerRunnable> getServerRunnableMap() {
+        return serverRunnableMap;
     }
 
-    public static PriorityBlockingQueue<QueuedPlayer> getQueue() {
-        return queue;
-    }
-
-    public static void setQueue(PriorityBlockingQueue<QueuedPlayer> queue) {
-        LobbyQueue.queue = queue;
-    }
-
-    public static QueuedPlayer getLast() {
-        return last;
-    }
-
-    public static void setLast(QueuedPlayer last) {
-        LobbyQueue.last = last;
-    }
-
-    public static Map<String, Integer> getMaxPlayers() {
+    public Map<String, Integer> getMaxPlayers() {
         return maxPlayers;
     }
+
+    public BungeeAPI getBungeeApi() {
+        return bungeeApi;
+    }
+
 }
