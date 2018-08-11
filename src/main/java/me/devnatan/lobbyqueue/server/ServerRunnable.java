@@ -9,15 +9,20 @@ import java.util.concurrent.ExecutionException;
 
 public class ServerRunnable implements Runnable {
 
+    BungeeAPI api = LobbyQueue.INSTANCE.getBungeeApi();
+
     private final String name;
     private final int maxPlayers;
     private final TreeSet<QueuePlayer> players;
-    BungeeAPI api = LobbyQueue.INSTANCE.getBungeeApi();
 
     public ServerRunnable(String name, int maxPlayers) {
         this.name = name;
         this.maxPlayers = maxPlayers;
         players = new TreeSet<>(new QueuePlayer.Comparator());
+    }
+
+    public TreeSet<QueuePlayer> getPlayers() {
+        return players;
     }
 
     public void run() {

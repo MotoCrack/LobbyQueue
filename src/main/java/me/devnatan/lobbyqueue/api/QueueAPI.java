@@ -1,12 +1,14 @@
 package me.devnatan.lobbyqueue.api;
 
+import me.devnatan.lobbyqueue.LobbyQueue;
 import me.devnatan.lobbyqueue.player.QueuePlayer;
+import me.devnatan.lobbyqueue.server.ServerRunnable;
 import org.bukkit.entity.Player;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.stream.Stream;
 
-@Deprecated
 public class QueueAPI {
 
     private QueueAPI() { }
@@ -15,15 +17,17 @@ public class QueueAPI {
      * Obtem um {@link QueuePlayer} através de um {@link Player}
      * @param player = o jogador
      * @return QueuePlayer
-     * @deprecated Deprecated
      */
     public static QueuePlayer getFromQueue(Player player) {
-        List<QueuePlayer> queue = null;
-        return queue.stream().filter(Objects::nonNull)
-                .filter(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()))
-                .filter(queuedPlayer -> queuedPlayer.getPlayer().isOnline())
-                .findFirst()
-                .orElse(null);
+        for (Map.Entry<String, ServerRunnable> entry : LobbyQueue.INSTANCE.getServerRunnableMap().entrySet()) {
+            ServerRunnable runnable = entry.getValue();
+            Stream<QueuePlayer> stream = runnable.getPlayers().stream()
+                    .filter(player2 -> player2.getPlayer().getName().equals(player.getName()));
+            if (stream.anyMatch(player2 -> player2.getPlayer().getName().equals(player.getName()))) {
+                return stream.findFirst().orElse(null);
+            }
+        }
+        return null;
     }
 
     /**
@@ -33,34 +37,39 @@ public class QueueAPI {
      * @throws IllegalArgumentException se o jogador já estiver na fila
      */
     public static void addToQueue(Player player, String server) throws IllegalArgumentException {
-        if(isInQueue(player))
-            throw new IllegalArgumentException("This player is already in queue.");
-
-        List<QueuePlayer> queue = null;
-        queue.add(new QueuePlayer(player, server));
+        ServerRunnable sr = LobbyQueue.INSTANCE.getServerRunnableMap().get(server);
+        if (sr != null) {
+            sr.getPlayers().add(new QueuePlayer(player, server));
+        }
     }
 
     /**
      * Remove um jogador da fila.
      * @param player = o jogador
-     * @throws IllegalArgumentException se o jogador não estiver na fila
      */
     public static void removeFromQueue(Player player) throws IllegalArgumentException {
-        if(isInQueue(player))
-            throw new IllegalArgumentException("This player isn't in queue.");
-
-        List<QueuePlayer> queue = null;
-        queue.removeIf(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()));
+        for (Map.Entry<String, ServerRunnable> entry : LobbyQueue.INSTANCE.getServerRunnableMap().entrySet()) {
+            ServerRunnable runnable = entry.getValue();
+            Iterator<QueuePlayer> iterator = runnable.getPlayers().iterator();
+            while (iterator.hasNext()) {
+                QueuePlayer next = iterator.next();
+                if (next.getPlayer().getName().equals(player.getName())) {
+                    iterator.remove();
+                    break;
+                }
+            }
+        }
     }
 
     /**
      * Verifica se o jogador está na fila.
      * @param player = o jogador
      * @return se o jogador está na fila
+     * @deprecated Não é mais usado.
      */
+    @Deprecated
     public static boolean isInQueue(Player player) {
         return false;
-        // return LobbyQueue.getQueue().stream().anyMatch(queuedPlayer -> queuedPlayer.getPlayer().getName().equals(player.getName()));
     }
 
     /**
