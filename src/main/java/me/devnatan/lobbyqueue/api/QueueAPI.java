@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public class QueueAPI {
 
@@ -21,9 +20,10 @@ public class QueueAPI {
     public static QueuePlayer getFromQueue(Player player) {
         for (Map.Entry<String, ServerRunnable> entry : LobbyQueue.INSTANCE.getServerRunnableMap().entrySet()) {
             ServerRunnable runnable = entry.getValue();
-            Stream<QueuePlayer> stream = runnable.getPlayers().stream();
-            if (stream.anyMatch(player2 -> player2.getPlayer().getName().equals(player.getName()))) {
-                return stream.findFirst().orElse(null);
+            for (QueuePlayer next : runnable.getPlayers()) {
+                if (next.getPlayer().getName().equalsIgnoreCase(player.getName())) {
+                    return next;
+                }
             }
         }
         return null;
@@ -33,9 +33,8 @@ public class QueueAPI {
      * Adiciona um jogador como o ultimo da fila.
      * @param player = o jogador
      * @param server = o servidor
-     * @throws IllegalArgumentException se o jogador já estiver na fila
      */
-    public static void addToQueue(Player player, String server) throws IllegalArgumentException {
+    public static void addToQueue(Player player, String server) {
         ServerRunnable sr = LobbyQueue.INSTANCE.getServerRunnableMap().get(server);
         if (sr != null) {
             sr.getPlayers().add(new QueuePlayer(player, server));

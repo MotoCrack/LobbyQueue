@@ -1,5 +1,6 @@
 package me.devnatan.lobbyqueue;
 
+import me.devnatan.lobbyqueue.command.TestCommand;
 import me.devnatan.lobbyqueue.libs.BungeeAPI;
 import me.devnatan.lobbyqueue.libs.SocketUtil;
 import me.devnatan.lobbyqueue.server.ServerRunnable;
@@ -27,6 +28,10 @@ public class LobbyQueue extends JavaPlugin {
     }
 
     public void onEnable() {
+        serverRunnableMap.clear();
+        maxPlayers.clear();
+        bungeeApi = null;
+
         path();
         config(this::runnable);
         setup();
@@ -65,15 +70,15 @@ public class LobbyQueue extends JavaPlugin {
     }
 
     private void setup() {
-        // Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);
         bungeeApi = BungeeAPI.of(this);
+        getCommand("testqueue").setExecutor(new TestCommand());
     }
 
     private void runnable(String server, int max) {
         if (!serverRunnableMap.containsKey(server)) {
             ServerRunnable runnable = new ServerRunnable(server, max);
-            Bukkit.getScheduler().runTaskTimerAsynchronously(this, runnable, 20L, 20L);
             serverRunnableMap.put(server, runnable);
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, runnable, 20L, 20L);
         }
     }
 

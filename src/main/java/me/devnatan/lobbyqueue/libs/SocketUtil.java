@@ -10,6 +10,7 @@ public class SocketUtil {
 
     public static int getMaxPlayers(InetSocketAddress address) throws IOException {
         Socket socket = new Socket();
+        socket.setSoTimeout(5000);
         socket.connect(address);
 
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());

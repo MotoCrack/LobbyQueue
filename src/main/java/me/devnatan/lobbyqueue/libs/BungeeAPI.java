@@ -55,6 +55,11 @@ public class BungeeAPI {
         Player player = getFirstPlayer();
         CompletableFuture<Integer> future = new CompletableFuture<>();
 
+        if (player == null) {
+            future.complete(0);
+            return future;
+        }
+
         synchronized (callbackMap) {
             callbackMap.compute("PlayerCount-" + serverName, this.computeQueueValue(future));
         }
@@ -248,7 +253,7 @@ public class BungeeAPI {
                 String identifier = null;
 
                 try {
-                    input.readUTF();
+                    identifier = input.readUTF();
                 } catch (Exception ignored) { }
 
                 if(identifier != null) {
@@ -359,7 +364,7 @@ public class BungeeAPI {
         };
     }
 
-    private Player getFirstPlayer() {
+    private Player getFirstPlayer() throws IllegalArgumentException {
         Player firstPlayer = getFirstPlayer0(Bukkit.getOnlinePlayers());
 
         if (firstPlayer == null) {

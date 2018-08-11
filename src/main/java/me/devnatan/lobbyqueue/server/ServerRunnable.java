@@ -5,7 +5,6 @@ import me.devnatan.lobbyqueue.libs.BungeeAPI;
 import me.devnatan.lobbyqueue.player.QueuePlayer;
 
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
 
 public class ServerRunnable implements Runnable {
 
@@ -27,28 +26,31 @@ public class ServerRunnable implements Runnable {
 
     public void run() {
         try {
-            int count = api.getPlayerCount(name).get();
-            if (count == maxPlayers) {
-                LobbyQueue.INSTANCE.getLogger().warning("Servidor " + name + " está cheio.");
-                return;
-            }
-        } catch (InterruptedException | ExecutionException e) {
+            api.getPlayerCount(name).whenCompleteAsync((count, throwable) -> {
+                if (count == maxPlayers) {
+                    LobbyQueue.INSTANCE.getLogger().warning("Servidor " + name + " está cheio.");
+                    return;
+                }
+
+                QueuePlayer player = players.pollFirst();
+                if (player == null) {
+                    LobbyQueue.INSTANCE.getLogger().info("Fila do servidor " + name + " vazia.");
+                    return;
+                }
+
+                if (player.getPlayer() == null || !player.getPlayer().isOnline()) {
+                    LobbyQueue.INSTANCE.getLogger().info("Jogador " + player.getPlayer().getName() + " removido da fila.");
+                    return;
+                }
+
+                api.connect(player.getPlayer(), name);
+                LobbyQueue.INSTANCE.getLogger().info("Jogador " + player.getPlayer().getName() + " conectou-se à " + name + ".");
+            });
+        } catch (IllegalArgumentException e) {
+            LobbyQueue.INSTANCE.getLogger().warning("Nenhum jogador encontrado no servidor " + name + ".");
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
-        QueuePlayer player = players.pollFirst();
-        if (player == null) {
-            LobbyQueue.INSTANCE.getLogger().info("Fila do servidor " + name + " vazia.");
-            return;
-        }
-
-        if (player.getPlayer() == null || !player.getPlayer().isOnline()) {
-            LobbyQueue.INSTANCE.getLogger().info("Jogador " + player.getPlayer().getName() + " removido da fila.");
-            return;
-        }
-
-        api.connect(player.getPlayer(), name);
-        LobbyQueue.INSTANCE.getLogger().info("Jogador " + player.getPlayer().getName() + " conectou-se à " + name + ".");
     }
 
 }
