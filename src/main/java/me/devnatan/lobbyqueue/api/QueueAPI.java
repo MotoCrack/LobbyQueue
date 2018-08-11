@@ -21,8 +21,7 @@ public class QueueAPI {
     public static QueuePlayer getFromQueue(Player player) {
         for (Map.Entry<String, ServerRunnable> entry : LobbyQueue.INSTANCE.getServerRunnableMap().entrySet()) {
             ServerRunnable runnable = entry.getValue();
-            Stream<QueuePlayer> stream = runnable.getPlayers().stream()
-                    .filter(player2 -> player2.getPlayer().getName().equals(player.getName()));
+            Stream<QueuePlayer> stream = runnable.getPlayers().stream();
             if (stream.anyMatch(player2 -> player2.getPlayer().getName().equals(player.getName()))) {
                 return stream.findFirst().orElse(null);
             }
